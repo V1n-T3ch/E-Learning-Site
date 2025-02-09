@@ -3,11 +3,10 @@ import React, { useState } from 'react';
 import "../../globals.css";
 import Link from 'next/link';
 import Image from 'next/image';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { setDoc, doc } from 'firebase/firestore';
-import { auth, db } from '../../../firebaseConfig';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
+import bcrypt from 'bcryptjs';
+import axios from 'axios';
 
 const Signup = () => {
   const [email, setEmail] = useState('');
@@ -17,7 +16,7 @@ const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const navigate = useRouter();
+  const router = useRouter();
 
   const handleEmailChange = (e) => {
     const emailValue = e.target.value;
@@ -40,39 +39,38 @@ const Signup = () => {
         return;
       }
 
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+      const hashedPassword = await bcrypt.hash(password, 10); 
 
-      let role, collection;
+      const role = email.endsWith('@students.dkut.ac.ke') ? 'student' : email.endsWith('@dkut.ac.ke') ? 'admin' : null;
 
-      if (email.endsWith('@students.dkut.ac.ke')) {
-        role = 'student';
-        collection = 'students';
-      } else if (email.endsWith('@dkut.ac.ke')) {
-        role = 'admin';
-        collection = 'admin';
-      } else {
+      if (!role) {
         alert('Invalid email domain. Use a valid DeKUT email.');
         return;
       }
 
-      await setDoc(doc(db, collection, user.uid), {
-        email: email,
+      const response = await axios.post('/api/addUser', {
+        email,
         regno: isAdmin ? '' : regno,
-        role: role,
-        createdAt: new Date()
+        hashedPassword,
+        role,
       });
+      
+      console.log(response.data);
 
-      alert('Account created successfully');
-      navigate.push('/auth/login');
+      if (response.data.success) {
+        alert('Account created successfully');
+        router.push('/auth/login');
 
-      setEmail('');
-      setRegno('');
-      setPassword('');
-      setConfirmPassword('');
+        setEmail('');
+        setRegno('');
+        setPassword('');
+        setConfirmPassword('');
+      } else {
+        alert(response.data.message || 'Signup failed');
+      }
     } catch (error) {
       console.error('Signup Error:', error);
-      alert(error.message);
+      alert(error.response?.data?.message || error.message);
     }
   }
 

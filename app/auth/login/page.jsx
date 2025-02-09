@@ -3,8 +3,6 @@ import React, { useState } from 'react';
 import "../../globals.css";
 import Link from 'next/link';
 import Image from 'next/image';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../../../firebaseConfig';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -20,18 +18,30 @@ const Login = () => {
       if (password === '' || email === '') {
         alert('Please fill in all fields');
         return;
-      } else {
-        await signInWithEmailAndPassword(auth, email, password);
+      }
+
+      const response = await fetch('/api/getUser', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
         alert('Login successful');
         setEmail('');
         setPassword('');
-  
-        const adminEmails = ['vincent.gichomo@dkut.ac.ke'];
-        if (adminEmails.includes(email)) {
+
+        if (data.role === 'admin') {
           navigate.push('/admin');
         } else {
           navigate.push('/lessons');
         }
+      } else {
+        alert(data.message || 'Login failed. Please check your credentials.');
       }
     } catch (error) {
       console.error(error);
@@ -61,7 +71,7 @@ const Login = () => {
                   name="email"
                   id="email"
                   className="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-green-600 focus:border-green-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                  placeholder="name@company.com"
+                  placeholder="name@dkut.ac.ke"
                   required
                   onChange={(e) => setEmail(e.target.value)}
                 />
