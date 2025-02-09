@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
-import { getDatabase } from '../../lib/db';
+import { getDatabase } from '@/lib/userDB';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {

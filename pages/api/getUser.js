@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { getDatabase } from '../../lib/db';
+import { getDatabase } from '@/lib/userDB';
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
@@ -8,7 +8,7 @@ export default async function handler(req, res) {
       const db = await getDatabase();
       const collectionName = email.endsWith('@dkut.ac.ke') ? 'admins' : 'students';
       const collection = db.collection(collectionName);
-      
+
       const user = await collection.findOne({ email });
       if (!user) {
         return res.status(401).json({ message: 'Invalid credentials' });

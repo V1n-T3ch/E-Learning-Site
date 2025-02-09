@@ -1,6 +1,10 @@
 "use client";
 import Link from 'next/link';
 import Image from 'next/image';
+import CoursesList from '@/components/Courses';
+import PDFViewer from '@/components/Student';
+import "@/polyfills";
+
 
 const LandingPage = () => {
   return (
@@ -62,6 +66,8 @@ const LandingPage = () => {
             </span>
           </Link>
         </div>
+        <CoursesList />
+        <PDFViewer fileUrl="https://arxiv.org/pdf/quant-ph/0410100.pdf" />
       </section>
     </div>
   );
