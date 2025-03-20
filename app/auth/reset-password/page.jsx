@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
 import Image from 'next/image';
+import '@/app/globals.css';
 
 const ResetPassword = () => {
   const [password, setPassword] = useState('');

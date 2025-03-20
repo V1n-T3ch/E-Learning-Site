@@ -1,19 +1,48 @@
-import { getDatabase } from "@/lib/courseDB";
+import { MongoClient, ObjectId } from 'mongodb';
 
 export default async function handler(req, res) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ success: false, message: "Method not allowed" });
+  if (req.method !== 'GET') {
+    return res.status(405).json({ message: 'Method not allowed' });
+  }
+
+  const { id } = req.query;
+  
+  if (!id) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Course ID is required' 
+    });
   }
 
   try {
-    const db = await getDatabase();
-    const courses = await db.collection("courses").find({}).toArray();
+    // Connect to MongoDB
+    const client = new MongoClient("mongodb://localhost:27017");
+    await client.connect();
     
-    console.log("Courses fetched from DB:", courses); // Log the fetched data
+    const db = client.db('admin');
+    const collection = db.collection('courses');
 
-    res.status(200).json({ success: true, data: courses });
+    // Fetch course by ID
+    const course = await collection.findOne({ _id: new ObjectId(id) });
+    
+    // Close connection
+    await client.close();
+    
+    if (!course) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Course not found' 
+      });
+    }
+    
+    // Return course data
+    res.status(200).json({ success: true, data: course });
   } catch (error) {
-    console.error("Database error:", error);
-    res.status(500).json({ success: false, error: "Database error" });
+    console.error('Error fetching course:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch course', 
+      error: error.message 
+    });
   }
 }

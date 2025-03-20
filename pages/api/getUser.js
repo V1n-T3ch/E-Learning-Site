@@ -1,29 +1,84 @@
 import bcrypt from 'bcryptjs';
-import { getDatabase } from '@/lib/userDB';
+import { MongoClient } from 'mongodb';
 
 export default async function handler(req, res) {
-  if (req.method === 'POST') {
-    const { email, password } = req.body;
-    try {
-      const db = await getDatabase();
-      const collectionName = email.endsWith('@dkut.ac.ke') ? 'admins' : 'students';
-      const collection = db.collection(collectionName);
+  if (req.method !== 'POST') {
+    return res.status(405).json({ message: 'Method not allowed' });
+  }
 
-      const user = await collection.findOne({ email });
-      if (!user) {
-        return res.status(401).json({ message: 'Invalid credentials' });
-      }
+  const { email, password } = req.body;
 
-      const isPasswordValid = await bcrypt.compare(password, user.hashedPassword);
-      if (!isPasswordValid) {
-        return res.status(401).json({ message: 'Invalid credentials' });
-      }
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Email and password required' });
+  }
 
-      res.status(200).json({ message: 'Login successful', role: user.role });
-    } catch (error) {
-      res.status(500).json({ message: 'Error retrieving user', error });
+  try {
+    // Connect to MongoDB
+    const client = new MongoClient("mongodb://localhost:27017");
+    await client.connect();
+
+    const db = client.db('users');
+
+    // Determine which collection to check based on email domain
+    const isAdmin = email.endsWith('@dkut.ac.ke');
+    const collectionName = isAdmin ? 'admins' : 'students';
+
+    console.log(`Authentication attempt for ${email} as ${isAdmin ? 'admin' : 'student'}`);
+    console.log(`Checking collection: ${collectionName}`);
+
+    const collection = db.collection(collectionName);
+
+    // Find user by email
+    const user = await collection.findOne({ email });
+
+    // Close connection
+    await client.close();
+
+    if (!user) {
+      console.log(`No user found for ${email} in ${collectionName} collection`);
+      return res.status(401).json({ message: 'Invalid email or password' });
     }
-  } else {
-    res.status(405).json({ message: 'Method not allowed' });
+
+    console.log(`User found: ${user.email}`);
+
+    // Determine which password field to use
+    // It might be stored as 'password' or 'hashedPassword'
+    const passwordField = user.password ? 'password' :
+      user.hashedPassword ? 'hashedPassword' : null;
+
+    if (!passwordField) {
+      console.error(`No password field found for user ${email}`);
+      return res.status(500).json({ message: 'Invalid user account structure' });
+    }
+
+    // Compare passwords
+    const passwordMatch = await bcrypt.compare(password, user[passwordField]);
+
+    if (!passwordMatch) {
+      console.log(`Password mismatch for ${email}`);
+      return res.status(401).json({ message: 'Invalid email or password' });
+    }
+
+    console.log(`Authentication successful for ${email}`);
+
+    // Return user without sensitive data
+    const safeUser = {
+      id: user._id.toString(),
+      email: user.email,
+      role: isAdmin ? 'admin' : 'student',  // Set role based on collection
+      name: user.name || user.email.split('@')[0],
+      regno: user.regno || ''
+    };
+
+    console.log(`Login successful, returning user:`, {
+      email: safeUser.email,
+      role: safeUser.role,
+      id: safeUser.id
+    });
+
+    return res.status(200).json(safeUser);
+  } catch (error) {
+    console.error('Error in getUser:', error);
+    return res.status(500).json({ message: 'Authentication failed', error: error.message });
   }
 }

@@ -2,6 +2,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import React, { useState } from 'react';
+import '@/app/globals.css';
 
 const RequestReset = () => {
   const [email, setEmail] = useState('');

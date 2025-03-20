@@ -35,6 +35,7 @@ const ManageCourses = () => {
       console.log("Response from server:", data);
   
       if (data.success) {
+        alert('Course uploaded successfully');
         setCourses([...courses, { title, school, year, materials: data.materials }]);
         setTitle('');
         setSchool('');
@@ -52,7 +53,7 @@ const ManageCourses = () => {
 
   return (
     <AdminLayout>
-      <h1 className="text-3xl font-bold mb-6 text-black">Manage Courses</h1>
+      <h1 className="text-3xl font-bold mb-6 text-black">Upload Courses</h1>
       <form onSubmit={handleAddCourse} className="mb-6">
         <div className="mb-4">
           <label htmlFor="course-title" className="block text-sm font-bold mb-2 text-black">Course Title</label>
